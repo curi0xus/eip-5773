@@ -361,11 +361,12 @@ describe("MultiAsset", async () => {
 
       // Add new asset to overwrite the first, and accept
       const activeAssets = await token.getActiveAssets(tokenId);
+      console.log("active assets", activeAssets); //Expected: [1]
       await expect(token.addAssetToToken(tokenId, resId2, activeAssets[0]))
         .to.emit(token, "AssetAddedToToken")
         .withArgs(tokenId, resId2, resId);
       const pendingAssets = await token.getPendingAssets(tokenId);
-
+      console.log("pending assets", pendingAssets); //Expected: [2]
       expect(
         await token.getAssetReplacements(tokenId, pendingAssets[0])
       ).to.eql(activeAssets[0]);
@@ -374,6 +375,7 @@ describe("MultiAsset", async () => {
         .withArgs(tokenId, resId2, resId);
 
       const activeIds = await token.getActiveAssets(tokenId);
+      console.log("active assets again", activeIds); //Expected: [2]
       expect(
         await renderUtils.getAssetsById(token.address, tokenId, activeIds)
       ).to.eql([metaURIDefault]);
@@ -386,20 +388,51 @@ describe("MultiAsset", async () => {
     it("can overwrite non existing asset to token, it could have been deleted", async function () {
       const resId = 1;
       const tokenId = 1;
+      const assetIdNonExistant = 12345;
 
       await token.mint(owner.address, tokenId);
       await addAssets([resId]);
-      await token.addAssetToToken(
-        tokenId,
-        resId,
-        ethers.utils.hexZeroPad("0x1", 8)
-      );
+      await token.addAssetToToken(tokenId, resId, assetIdNonExistant);
       await token.acceptAsset(tokenId, 0, resId);
 
       const activeIds = await token.getActiveAssets(tokenId);
       expect(
         await renderUtils.getAssetsById(token.address, tokenId, activeIds)
       ).to.eql([metaURIDefault]);
+    });
+    it("can overwrite an existing asset after 3 have been added and 1 accepted", async function () {
+      const resId = 1;
+      const resId2 = 2;
+      const resId3 = 3;
+      const tokenId = 1;
+
+      await token.mint(owner.address, tokenId);
+      await addAssets([resId, resId2, resId3]);
+      await expect(token.addAssetToToken(tokenId, resId, 0)).to.emit(
+        token,
+        "AssetAddedToToken"
+      );
+      await expect(token.addAssetToToken(tokenId, resId2, 0)).to.emit(
+        token,
+        "AssetAddedToToken"
+      );
+      await expect(token.addAssetToToken(tokenId, resId3, resId2))
+        .to.emit(token, "AssetAddedToToken")
+        .withArgs(tokenId, resId3, resId2);
+
+      const pendingIds = await token.getPendingAssets(tokenId);
+
+      expect(
+        await renderUtils.getAssetsById(token.address, tokenId, pendingIds)
+      ).to.be.eql([metaURIDefault, metaURIDefault, metaURIDefault]);
+
+      await expect(token.acceptAsset(tokenId, 1, resId2))
+        .to.emit(token, "AssetAccepted")
+        .withArgs(tokenId, resId2, 0);
+
+      await expect(token.acceptAsset(tokenId, 1, resId3))
+        .to.emit(token, "AssetAccepted")
+        .withArgs(tokenId, resId3, 2);
     });
   });
 

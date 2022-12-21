@@ -437,7 +437,9 @@ contract MultiAssetToken is Context, IERC721, IMultiAsset {
     ////////////////////////////////////////
     //                ASSETS
     ////////////////////////////////////////
-
+//tokenId that u want to change asset for 
+//index in the _pendingAssetsList
+//assetId of the asset u want to swap to
     function acceptAsset(
         uint256 tokenId,
         uint256 index,
@@ -629,9 +631,9 @@ contract MultiAssetToken is Context, IERC721, IMultiAsset {
     }
 
     function _addAssetToToken(
-        uint256 tokenId,
-        uint64 assetId,
-        uint64 replacesAssetWithId
+        uint256 tokenId,//tokenId u want to add asset to
+        uint64 assetId,//asset to swap TO i.e. newAssetId
+        uint64 replacesAssetWithId//asset to swap WITH i.e. oldAssetId
     ) internal {
         require(
             !_tokenAssets[tokenId][assetId],
